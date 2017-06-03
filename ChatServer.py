@@ -41,68 +41,80 @@ def server(messageport):
 		
 	
 def messageHandler(userinfo):
-    while True:
-        username = userinfo[0]+': '
-        msg = userinfo[1].recv(1024).decode()
-        
-        if len(msg):
-            for client in clientlist:
-                if client != userinfo:
-                    client[1].send((username+msg[:-1]).encode())
-        else:
-            userleft = "{} has exited the chat room".format(userinfo[0])
-            clientlist.remove(userinfo)
-            userinfo[2].close()
-            userinfo[3].close()
-            for client in clientlist:
-                client[1].send(userleft.encode())
-            break
-					
-def fileListener(userinfo):
-    while True:
-        fileowner = userinfo[2].recv(100).decode()
-        filename = userinfo[2].recv(100)
-        fileownerexists = 0
-        
-        if(len(fileowner)):
-            for client in clientlist:
-                if client[0].lower() == fileowner.lower():
-                    fileownerexists = client
+    try:
+        while True:
+            username = userinfo[0]+': '
+            msg = userinfo[1].recv(1024).decode()
             
-            if(fileownerexists):
-                print("Connecting with "+fileowner)
-                print("Looking for "+filename.decode())
-                
-                fileownerexists[2].send(filename)
-                fileowner_sock = fileownerexists[4]
-                fileowner_sock.listen(5)
-                filereceivesock, addr=fileowner_sock.accept()
-                l = filereceivesock.recv(1024)
-                if(len(l)):
-                    print("Sending {} to {}".format(filename.decode(), userinfo[0]))
-                else:
-                    print("File not found")
-                file = l
-                while(l):
-                    l = filereceivesock.recv(1024)
-                    file += l
-                                                        
-                userinfo[4].listen(5)
-                filetransfersock, addr = userinfo[4].accept()
-
-                filetransfersock.sendall(file)
-                filetransfersock.shutdown(socket.SHUT_WR)
-                filetransfersock.close()
-                        
+            if len(msg):
+                for client in clientlist:
+                    if client != userinfo:
+                        client[1].send((username+msg[:-1]).encode())
             else:
-                print("User not found")
-                userinfo[4].listen(5)
-                filetransfersock, addr = userinfo[4].accept()
-                filetransfersock.shutdown(socket.SHUT_WR)
-                filetransfersock.close()
+                userleft = "{} has exited the chat room".format(userinfo[0])
+                clientlist.remove(userinfo)
+                userinfo[1].close()
+                userinfo[2].close()
+                for client in clientlist:
+                    client[1].send(userleft.encode())
+                break
+            
+    except ConnectionResetError:
+        userleft = "{} has exited the chat room".format(userinfo[0])
+        clientlist.remove(userinfo)
+        userinfo[1].close()
+        userinfo[2].close()
+        for client in clientlist:
+            client[1].send(userleft.encode())
+            
+def fileListener(userinfo):
+    try:
+        while True:
+            fileowner = userinfo[2].recv(100).decode()
+            filename = userinfo[2].recv(100)
+            fileownerexists = 0
+            
+            if(len(fileowner)):
+                for client in clientlist:
+                    if client[0].lower() == fileowner.lower():
+                        fileownerexists = client
+                
+                if(fileownerexists):
+                    print("Connecting with "+fileowner)
+                    print("Looking for "+filename.decode())
+                    
+                    fileownerexists[2].send(filename)
+                    fileowner_sock = fileownerexists[4]
+                    fileowner_sock.listen(5)
+                    filereceivesock, addr=fileowner_sock.accept()
+                    l = filereceivesock.recv(1024)
+                    if(len(l)):
+                        print("Sending {} to {}".format(filename.decode(), userinfo[0]))
+                    else:
+                        print("File not found")
+                    file = l
+                    while(l):
+                        l = filereceivesock.recv(1024)
+                        file += l
+                                                            
+                    userinfo[4].listen(5)
+                    filetransfersock, addr = userinfo[4].accept()
+
+                    filetransfersock.sendall(file)
+                    filetransfersock.shutdown(socket.SHUT_WR)
+                    filetransfersock.close()
                             
-        else:
-            pass
+                else:
+                    print("User not found")
+                    userinfo[4].listen(5)
+                    filetransfersock, addr = userinfo[4].accept()
+                    filetransfersock.shutdown(socket.SHUT_WR)
+                    filetransfersock.close()
+                                
+            else:
+                pass
+    except ConnectionAbortedError:
+        pass
 
 def usage():
     print("Usage: py ChatServer.py <listening port number>")
