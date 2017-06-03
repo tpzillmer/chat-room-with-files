@@ -1,67 +1,71 @@
 def client(listeningport, connectport):
 
-    messagesock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    messagesock.connect(('localhost', int(listeningport)))
-    messagesock.send(str(connectport).encode())
-    
-    usernamemsg = messagesock.recv(100).decode()
-    print(usernamemsg)
-
-    while True:
-        username = sys.stdin.readline()
-        messagesock.send(username.encode())
-        response = messagesock.recv(100).decode()
-        if response == "Username taken":
-            print("Username taken. Please enter a new username:")
-        else:
-            print(response)
-            break
-        
-    filerquestsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    filerquestsock.connect(('localhost', int(connectport)))
-
-    threading.Thread(target=recvMsg, args=[messagesock]).start()
-    threading.Thread(target=fileListener, args=[filerquestsock, connectport]).start()
-
     try:
+        messagesock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        messagesock.connect(('localhost', int(listeningport)))
+        messagesock.send(str(connectport).encode())
+        usernamemsg = messagesock.recv(100).decode()
+        print(usernamemsg)
+
         while True:
-            optionPrint()
-            opt = sys.stdin.readline()[:-1]
-
-            if opt.lower()=='f':
-                print("Enter the name of the user who has the file: ")
-                username = sys.stdin.readline()[:-1]
-                filerquestsock.send(username.encode())
-                
-                print("Enter the name of the file you want: ")
-                filename = sys.stdin.readline()[:-1]
-                filerquestsock.send(filename.encode())
-                filetransfersock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                filetransfersock.connect(('localhost', int(connectport)))
-                fileWriter(filetransfersock, filename)
-                
-            elif opt.lower()=='m':
-               print("You: ", end="")
-               sys.stdout.flush()
-               msg = sys.stdin.readline()
-               messagesock.send(msg.encode())
-
-            elif opt.lower()=='x':
-                print("closing your sockets...goodbye")
-                messagesock.shutdown(socket.SHUT_WR)
-                messagesock.close()
-                filerquestsock.shutdown(socket.SHUT_WR)
-                filerquestsock.close()
-                sys.exit()
-                
-    except OSError:
-        print("Server has closed. Goodbye.")
-        messagesock.shutdown(socket.SHUT_WR)
-        messagesock.close()
-        filerquestsock.shutdown(socket.SHUT_WR)
-        filerquestsock.close()
-        sys.exit()
+            username = sys.stdin.readline()
+            messagesock.send(username.encode())
+            response = messagesock.recv(100).decode()
+            if response == "Username taken":
+                print("Username taken. Please enter a new username:")
+            else:
+                print(response)
+                break
             
+        filerquestsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        filerquestsock.connect(('localhost', int(connectport)))
+
+        threading.Thread(target=recvMsg, args=[messagesock]).start()
+        threading.Thread(target=fileListener, args=[filerquestsock, connectport]).start()
+
+        try:
+            while True:
+                optionPrint()
+                opt = sys.stdin.readline()[:-1]
+
+                if opt.lower()=='f':
+                    print("Enter the name of the user who has the file: ")
+                    username = sys.stdin.readline()[:-1]
+                    filerquestsock.send(username.encode())
+                    
+                    print("Enter the name of the file you want: ")
+                    filename = sys.stdin.readline()[:-1]
+                    filerquestsock.send(filename.encode())
+                    filetransfersock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    filetransfersock.connect(('localhost', int(connectport)))
+                    fileWriter(filetransfersock, filename)
+                    
+                elif opt.lower()=='m':
+                   print("You: ", end="")
+                   sys.stdout.flush()
+                   msg = sys.stdin.readline()
+                   messagesock.send(msg.encode())
+
+                elif opt.lower()=='x':
+                    print("closing your sockets...goodbye")
+                    messagesock.shutdown(socket.SHUT_WR)
+                    messagesock.close()
+                    filerquestsock.shutdown(socket.SHUT_WR)
+                    filerquestsock.close()
+                    sys.exit()
+                    
+        except OSError:
+            print("Server has closed. Goodbye.")
+            messagesock.shutdown(socket.SHUT_WR)
+            messagesock.close()
+            filerquestsock.shutdown(socket.SHUT_WR)
+            filerquestsock.close()
+            sys.exit()
+            
+    except ConnectionRefusedError:
+        print("Server not yet open.")
+    
+    
 def recvMsg(messagesock):
     try:
         while True:
@@ -112,7 +116,9 @@ def optionPrint():
           " (M)essage (send)\n"
           " (F)ile (request)\n"
           "e(X)it")
-            
+
+def usage():
+    print("Usage: python ChatClient.py -l <listening port number> -p <connect server port>")
 
 if __name__ == "__main__":
     import getopt
@@ -122,8 +128,16 @@ if __name__ == "__main__":
     import socket
 
     #gets command line arguments
-    opts, args = getopt.getopt(sys.argv[1:], "l:p:")
-
-    if(len(args) == 0):
-        if(len(opts) == 2):
-            client(opts[0][1], opts[1][1])
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "l:p:")
+        if len(opts) == 2:
+            if opts[0][0] == '-l' and opts[1][0] == '-p':
+                client(opts[0][1], opts[1][1])
+            else:
+                usage()
+        else:
+            usage()
+    except getopt.GetoptError:
+        usage()
+        
+    

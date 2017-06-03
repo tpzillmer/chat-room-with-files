@@ -50,12 +50,13 @@ def messageHandler(userinfo):
                 if client != userinfo:
                     client[1].send((username+msg[:-1]).encode())
         else:
-            try:
-                print("User {} has exited the chat room".format(userinfo[0]))
-                clientlist.remove(userinfo)
-                break
-            except ValueError:
-                break
+            userleft = "{} has exited the chat room".format(userinfo[0])
+            clientlist.remove(userinfo)
+            userinfo[2].close()
+            userinfo[3].close()
+            for client in clientlist:
+                client[1].send(userleft.encode())
+            break
 					
 def fileListener(userinfo):
     while True:
@@ -77,6 +78,10 @@ def fileListener(userinfo):
                 fileowner_sock.listen(5)
                 filereceivesock, addr=fileowner_sock.accept()
                 l = filereceivesock.recv(1024)
+                if(len(l)):
+                    print("Sending {} to {}".format(filename.decode(), userinfo[0]))
+                else:
+                    print("File not found")
                 file = l
                 while(l):
                     l = filereceivesock.recv(1024)
@@ -84,10 +89,7 @@ def fileListener(userinfo):
                                                         
                 userinfo[4].listen(5)
                 filetransfersock, addr = userinfo[4].accept()
-                if(len(l)):
-                    print("Sending bytes to {}".format(userinfo[0]))
-                else:
-                    print("File not found.")
+
                 filetransfersock.sendall(file)
                 filetransfersock.shutdown(socket.SHUT_WR)
                 filetransfersock.close()
@@ -100,12 +102,10 @@ def fileListener(userinfo):
                 filetransfersock.close()
                             
         else:
-            try:
-                print("User {} has exited the chat room".format(userinfo[0]))
-                clientlist.remove(userinfo)
-                break
-            except ValueError:
-                break
+            pass
+
+def usage():
+    print("Usage: py ChatServer.py <listening port number>")
         
 if __name__ == "__main__":
     import getopt
@@ -114,12 +114,14 @@ if __name__ == "__main__":
     import socket
     
     #gets command line arguments
-    opts, args = getopt.getopt(sys.argv[1:], "")
-
-    if(len(opts) == 0):
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "")
         if(len(args) == 1):
             server(args[0])
-    else:
-        print("Usage: py ChatServer.py <listening port number>")
-            
+        else:
+            usage()
+    except:
+        usage()
+    
+        
 
