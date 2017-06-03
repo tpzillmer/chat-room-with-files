@@ -132,7 +132,7 @@ if __name__ == "__main__":
         opts, args = getopt.getopt(sys.argv[1:], "l:p:")
         if len(opts) == 2:
             if opts[0][0] == '-l' and opts[1][0] == '-p':
-                client(opts[0][1], opts[1][1])
+                client(opts[1][1], opts[0][1])
             else:
                 usage()
         else:
