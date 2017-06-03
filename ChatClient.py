@@ -126,4 +126,4 @@ if __name__ == "__main__":
 
     if(len(args) == 0):
         if(len(opts) == 2):
-            client(opts[1][1], opts[0][1])
+            client(opts[0][1], opts[1][1])
